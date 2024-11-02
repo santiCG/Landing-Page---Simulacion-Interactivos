@@ -1,101 +1,199 @@
-let particles = [];
-let lastMouseX = 0;  // Para rastrear el movimiento horizontal del mouse
-let radius = 200;    // Radio del hoyo en la capa negra
-let fireTexture;     // Variable para la textura de fuego
+let layers = [];
+let customFont;
+let maxLayers = 5;
+let colors = [
+  [67, 4, 92],
+  [80, 4, 110],
+  [113, 4, 141],
+  [58, 6, 153],
+  [112, 7, 173]
+];
+let layerSpeed = 500;
+let groundHeight = 50;
+let buildingGap = 50;
+let drawCounter = 0;
+let stars = [];
+let currentLayer = 0;
+let allLayersComplete = false;
+let santiagoY = -100;
+let cardenasX = -500;
+let textOpacity = 0;
+let fallingStars = []; // Array para almacenar las estrellas fugaces
+let song;
+let amplitude;
+let levelPower = 400;
+let colorPower = 2;
 
 function preload() {
-    // Cargar la textura de fuego
-    fireTexture = loadImage("texture.png");
+  customFont = loadFont('./CyberpunkFont.otf');
+  song = loadSound('./V-Song.mp3');
 }
 
 function setup() {
-    let canvas = createCanvas(windowWidth, windowHeight);
-    canvas.position(0, 0);  // Coloca el canvas en la esquina superior izquierda
-    canvas.style('z-index', '2');  // Asegura que el canvas esté encima del contenido
-    noCursor();  // Oculta el cursor
+  createCanvas(windowWidth, windowHeight);
+  background(15, 16, 38);
+  textFont(customFont);
+  textAlign(CENTER, CENTER);
+  textSize(80);
+  
+  amplitude = new p5.Amplitude();
+  song.play();
+
+  for (let i = 0; i < maxLayers; i++) {
+    layers.push([]);
+  }
+
+  for (let i = 0; i < 200; i++) {
+    let starX = random(width);
+    let starY = random(height);
+    let starSize = random(1, 3);
+    stars.push({ x: starX, y: starY, size: starSize });
+  }
+
+  frameRate(layerSpeed);
 }
 
 function draw() {
-    blendMode(ADD);
+  background(15, 16, 38);
+  drawBackground();
+  
+  for (let layerIndex = 0; layerIndex < layers.length; layerIndex++) {
+    let layer = layers[layerIndex];
+    let colorIndex = map(layerIndex, 0, layers.length - 1, 0, colors.length - 1);
+    let col = colors[Math.floor(colorIndex)];
 
-    clear();  // Limpia el canvas para evitar acumulación
-    fill(0, 0, 0, 230);  // Fondo semitransparente negro
-    rect(0, 0, width, height);  // Capa negra que cubre todo el canvas
+    if (layerIndex === currentLayer && drawCounter % (15 - layerIndex * 3) === 0 && layer.length * buildingGap < width) {
+      let rectWidth = random(20, 40);
+      let rectHeight = random(50, 100) * (layerIndex + 1) * 0.3;
+      let x = layer.length * buildingGap + random(-50, 50);
+      let y = height - groundHeight - rectHeight;
 
-    // Crear el hoyo que sigue el mouse
-    erase();
-    circle(mouseX, mouseY, radius * 2);
-    noErase();
-
-    // Actualizar y mostrar el sistema de partículas
-    updateParticles();
-}
-
-function updateParticles() {
-    // Generar nuevas partículas en la posición del mouse
-    particles.push(new Particle(mouseX, mouseY, fireTexture));
-
-    // Calcular la dirección del movimiento horizontal del mouse
-    let wind = 0;
-    if (mouseX < lastMouseX) {
-        wind = 0.02;  // Viento hacia la derecha si el mouse va hacia la izquierda
-    } else if (mouseX > lastMouseX) {
-        wind = -0.02;  // Viento hacia la izquierda si el mouse va hacia la derecha
-    }
-    lastMouseX = mouseX;  // Actualizar la última posición del mouse en X
-
-    // Actualizar y dibujar cada partícula
-    for (let i = particles.length - 1; i >= 0; i--) {
-        particles[i].applyForce(createVector(wind, -0.01));  // Aplica viento y una leve fuerza hacia arriba
-        particles[i].update();
-        particles[i].display();
-
-        // Eliminar partículas que ya se han desvanecido
-        if (particles[i].isFinished()) {
-            particles.splice(i, 1);
-        }
-    }
-}
-
-// Clase para definir partículas individuales con gradiente de color
-class Particle {
-    constructor(x, y) {
-        this.pos = createVector(x, y);
-        this.vel = createVector(random(-1, 1), random(-2, -0.5));
-        this.acc = createVector(0, 0);
-        this.lifespan = 255;  // Duración de la partícula
-        this.size = random(20, 40);  // Tamaño aleatorio de la partícula
+      layer.push({ x, y, w: rectWidth, h: rectHeight });
     }
 
-    applyForce(force) {
-        this.acc.add(force);
-    }
-
-    update() {
-        this.vel.add(this.acc);
-        this.pos.add(this.vel);
-        this.acc.mult(0);  // Resetear aceleración después de aplicar
-        this.lifespan -= 4;  // Reducir la vida de la partícula
-    }
-
-    display() {
-        // Cambiar el color gradualmente de blanco a rojo según la vida útil
-        let r = map(this.lifespan, 0, 255, 255, 150);  // De blanco a rojo
-        let g = map(this.lifespan, 0, 200, 220, 0);     // Reducir verde
-        let b = 0;                                     // Sin azul para tonos cálidos
+    for (let building of layer) {
+      let level = amplitude.getLevel();
+      fill(col[0]*(level*colorPower), col[1]*(level*colorPower), col[2]*(level*colorPower));
       
-        
-        tint(r, g, b, this.lifespan); // Aplicar el color con transparencia
-        // Dibujar la textura de fuego con el color
-        image(fireTexture, this.pos.x, this.pos.y, this.size, this.size);
+      rect(building.x, building.y- (level*levelPower), building.w, building.h + (level*levelPower));
     }
+  }
 
-    isFinished() {
-        return this.lifespan < 0;
+  if (layers[currentLayer].length * buildingGap >= width) {
+    if (currentLayer < maxLayers - 1) {
+      currentLayer++;
     }
+  }
+
+  drawCounter++;
+
+  if (santiagoY < height * 0.3) {
+    santiagoY += 1;
+    textOpacity = map(santiagoY, -100, height * 0.3, 0, 255);
+  }
+
+  if (cardenasX < width / 2) {
+    cardenasX += 4;
+    textOpacity = map(cardenasX, -500, width / 2, 0, 255);
+  }
+
+  fill(252, 236, 12, textOpacity);
+  let x = frameCount;
+  textSize(40*(Math.abs(sin(x*0.005))+1));
+  text("S", (cardenasX - width * 0.2), (height * 0.3));
+  text("A", (width / 2) - width * 0.1, (-santiagoY + height * 0.6));
+  text("N", (width / 2), santiagoY);
+  text("T", (width / 2) + width * 0.12, (-santiagoY + height * 0.6));
+  text("I", (-cardenasX + width * 1.22), (height * 0.3));
+
+  text("C", (cardenasX - width * 0.3), (height * 0.4));
+  text("A", (width / 2) - width * 0.2, (-santiagoY + height * 0.7));
+  text("R", (width / 2) - width * 0.1, (santiagoY + height * 0.1));
+  text("D", cardenasX, (height * 0.3) + height * 0.1);
+  text("E", (width / 2) + width * 0.1, (santiagoY + height * 0.1));
+  text("N", (-cardenasX + width * 1.2), (height * 0.4));
+  text("A", width * 0.8, (santiagoY + height * 0.1));
+  text("S", (-cardenasX + width * 1.4), (height * 0.4));
+
+  // Dibujar y actualizar estrellas fugaces
+  for (let i = fallingStars.length - 1; i >= 0; i--) {
+    fallingStars[i].update();
+    fallingStars[i].show();
+    if (fallingStars[i].isDone()) {
+      fallingStars.splice(i, 1);
+    }
+  }
 }
 
-// Ajustar el tamaño del canvas al cambiar el tamaño de la ventana
-function windowResized() {
-    resizeCanvas(windowWidth, windowHeight);
+function drawBackground() {
+  noStroke();
+  fill(255);
+  for (let star of stars) {
+    rect(star.x, star.y, star.size, star.size);
+  }
+
+  fill(25, 25, 45);
+  rect(0, height - groundHeight, width, groundHeight);
+}
+
+function mousePressed() {
+  fallingStars.push(new FallingStar(mouseX, mouseY));
+}
+
+class FallingStar {
+  constructor(targetX, targetY) {
+    this.x = random(width);
+    this.y = random(height * 0.1); // Empieza en la parte superior de la pantalla
+    this.targetX = targetX;
+    this.targetY = targetY;
+    this.particles = [];
+    this.angle = atan2(targetY - this.y, targetX - this.x);
+    this.speed = 5;
+  }
+
+  update() {
+    this.x += this.speed * cos(this.angle);
+    this.y += this.speed * sin(this.angle);
+
+    // Generar partículas para crear el efecto de la estela
+    this.particles.push(new Particle(this.x, this.y));
+
+    // Limitar el número de partículas en la estela
+    if (this.particles.length > 50) {
+      this.particles.shift();
+    }
+  }
+
+  show() {
+    for (let particle of this.particles) {
+      particle.update();
+      particle.show();
+    }
+
+    fill(235, 100, 2);
+    noStroke();
+    square(this.x, this.y, 5, 5);
+  }
+
+  isDone() {
+    return dist(this.x, this.y, this.targetX, this.targetY) < 5;
+  }
+}
+
+class Particle {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.alpha = 255;
+  }
+
+  update() {
+    this.alpha -= 5;
+  }
+
+  show() {
+    noStroke();
+    fill(255, 220, 150, this.alpha);
+    ellipse(this.x, this.y, 3, 3);
+  }
 }

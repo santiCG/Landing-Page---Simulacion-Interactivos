@@ -1,0 +1,11 @@
+body {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #0D0F1E; /* Color oscuro para el fondo de la página */
+}
+
+canvas {
+  display: block;
+}
