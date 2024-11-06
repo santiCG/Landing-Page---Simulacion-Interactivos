@@ -26,7 +26,6 @@ let colorPower = 2;
 
 function preload() {
   customFont = loadFont('./CyberpunkFont.otf');
-  song = loadSound('./V-Song.mp3');
 }
 
 function setup() {
@@ -140,6 +139,8 @@ function drawBackground() {
 
 function mousePressed() {
   console.log("cancion");
+  song = loadSound('./V-Song.mp3');
+
   if (!song.isPlaying()) {
     song.play();
   }
