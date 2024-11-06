@@ -2,21 +2,21 @@ let layers = [];
 let customFont;
 let maxLayers = 5;
 let colors = [
-  [67, 4, 92],
-  [80, 4, 110],
-  [113, 4, 141],
-  [58, 6, 153],
-  [112, 7, 173]
+  [67, 4, 120],
+  [77, 4, 125],
+  [87, 4, 130],
+  [97, 4, 150],
+  [107, 4, 170]
 ];
 let layerSpeed = 500;
 let groundHeight = 50;
-let buildingGap = 50;
+let buildingGap;
 let drawCounter = 0;
 let stars = [];
 let currentLayer = 0;
 let allLayersComplete = false;
-let santiagoY = -100;
-let cardenasX = -500;
+let santiagoY = -30;
+let cardenasX = -100;
 let textOpacity = 0;
 let fallingStars = []; // Array para almacenar las estrellas fugaces
 let song;
@@ -36,8 +36,9 @@ function setup() {
   textAlign(CENTER, CENTER);
   textSize(80);
   
+  buildingGap = random(20, 50);
+  
   amplitude = new p5.Amplitude();
-  song.play();
 
   for (let i = 0; i < maxLayers; i++) {
     layers.push([]);
@@ -63,7 +64,7 @@ function draw() {
     let col = colors[Math.floor(colorIndex)];
 
     if (layerIndex === currentLayer && drawCounter % (15 - layerIndex * 3) === 0 && layer.length * buildingGap < width) {
-      let rectWidth = random(20, 40);
+      let rectWidth = random(10, 30);
       let rectHeight = random(50, 100) * (layerIndex + 1) * 0.3;
       let x = layer.length * buildingGap + random(-50, 50);
       let y = height - groundHeight - rectHeight;
@@ -88,17 +89,18 @@ function draw() {
   drawCounter++;
 
   if (santiagoY < height * 0.3) {
-    santiagoY += 1;
+    santiagoY += 0.5;
     textOpacity = map(santiagoY, -100, height * 0.3, 0, 255);
   }
 
   if (cardenasX < width / 2) {
-    cardenasX += 4;
+    cardenasX += 2;
     textOpacity = map(cardenasX, -500, width / 2, 0, 255);
   }
 
   fill(252, 236, 12, textOpacity);
   let x = frameCount;
+  
   textSize(40*(Math.abs(sin(x*0.005))+1));
   text("S", (cardenasX - width * 0.2), (height * 0.3));
   text("A", (width / 2) - width * 0.1, (-santiagoY + height * 0.6));
@@ -137,6 +139,10 @@ function drawBackground() {
 }
 
 function mousePressed() {
+  console.log("cancion");
+  if (!song.isPlaying()) {
+    song.play();
+  }
   fallingStars.push(new FallingStar(mouseX, mouseY));
 }
 
@@ -193,7 +199,7 @@ class Particle {
 
   show() {
     noStroke();
-    fill(255, 220, 150, this.alpha);
+    fill(235, 100, 2, this.alpha);
     ellipse(this.x, this.y, 3, 3);
   }
 }
